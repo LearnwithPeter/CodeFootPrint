@@ -10,65 +10,6 @@ import {
   Star,
 } from "lucide-react";
 
-// Genuine, small-scale waitlist members
-const WAITLIST_MEMBERS = [
-  {
-    name: "Rahul Gupta",
-    role: "Backend Dev @ Swiggy",
-    time: "2 days ago",
-    avatar: "RG",
-    color: "#00D4FF",
-  },
-  {
-    name: "Tanmay Joshi",
-    role: "CS Student, IIT Bombay",
-    time: "3 days ago",
-    avatar: "TJ",
-    color: "#00FF88",
-  },
-  {
-    name: "Sneha Kapoor",
-    role: "Team Lead @ Razorpay",
-    time: "5 days ago",
-    avatar: "SK",
-    color: "#FFB800",
-  },
-  {
-    name: "Aditya Verma",
-    role: "Freelance Dev",
-    time: "1 week ago",
-    avatar: "AV",
-    color: "#A78BFA",
-  },
-  {
-    name: "Meera Iyer",
-    role: "Open Source Contributor",
-    time: "1 week ago",
-    avatar: "MI",
-    color: "#FB923C",
-  },
-];
-
-// Only 2 real-feeling reviews
-const REVIEWS = [
-  {
-    name: "Karan Malhotra",
-    role: "Engineering Manager, startup",
-    avatar: "KM",
-    color: "#00D4FF",
-    text: "Used this to review my intern's contribution before their final evaluation. Saved me from manually going through 200+ commits. The AI summary was surprisingly accurate.",
-    stars: 5,
-  },
-  {
-    name: "Divya Nair",
-    role: "CS Final Year, BITS Pilani",
-    avatar: "DN",
-    color: "#00FF88",
-    text: "We had a group project dispute and this sorted it out in 30 seconds. Showed the prof exactly who wrote what. Would recommend to every college team.",
-    stars: 5,
-  },
-];
-
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -108,7 +49,7 @@ export default function Contact() {
       {/* Hero */}
       <section className="py-16 px-6 relative overflow-hidden">
         <div className="absolute inset-0 grid-bg opacity-30" />
-        <div className="hero-glow w-80 h-80 bg-[#00D4FF] opacity-[0.04] top-0 left-1/3" />
+        <div className="absolute hero-glow w-80 h-80 bg-[#00D4FF] opacity-[0.04] top-0 left-1/3" />
         <div className="max-w-4xl mx-auto relative text-center">
           <span className="font-mono text-xs text-[#00D4FF] tracking-widest uppercase">
             Contact & Waitlist
@@ -170,94 +111,7 @@ export default function Contact() {
               </div>
             )}
 
-            {/* Waitlist members */}
-            <div className="mt-6 pt-5 border-t border-[#1E2A3A]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Users size={14} className="text-[#4A5568]" />
-                  <span className="font-body text-xs text-[#4A5568]">
-                    Recently joined
-                  </span>
-                </div>
-                <span className="font-mono text-xs text-[#00D4FF]">
-                  17 members
-                </span>
-              </div>
-              <div className="space-y-3">
-                {WAITLIST_MEMBERS.map((member) => (
-                  <div key={member.name} className="flex items-center gap-3">
-                    <div
-                      className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center font-mono text-xs text-black font-600"
-                      style={{ background: member.color }}
-                    >
-                      {member.avatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-body text-sm text-white truncate">
-                        {member.name}
-                      </div>
-                      <div className="font-body text-xs text-[#4A5568] truncate">
-                        {member.role}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-[#2D3748] flex-shrink-0">
-                      <Clock size={10} />
-                      <span className="font-mono text-xs">{member.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 text-center">
-                <span className="font-mono text-xs text-[#2D3748]">
-                  + 12 others joined this week
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Reviews */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Star size={14} className="text-[#FFB800]" />
-              <span className="font-body text-sm text-[#4A5568]">
-                What early users say
-              </span>
-            </div>
-            {REVIEWS.map((review) => (
-              <div
-                key={review.name}
-                className="card-hover bg-[#0D1117] border border-[#1E2A3A] rounded-xl p-5"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center font-mono text-xs text-black font-700"
-                    style={{ background: review.color }}
-                  >
-                    {review.avatar}
-                  </div>
-                  <div>
-                    <div className="font-body text-sm font-500 text-white">
-                      {review.name}
-                    </div>
-                    <div className="font-body text-xs text-[#4A5568]">
-                      {review.role}
-                    </div>
-                  </div>
-                  <div className="ml-auto flex gap-0.5">
-                    {Array.from({ length: review.stars }).map((_, i) => (
-                      <Star
-                        key={i}
-                        size={11}
-                        className="text-[#FFB800] fill-[#FFB800]"
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="font-body text-sm text-[#718096] leading-relaxed italic">
-                  "{review.text}"
-                </p>
-              </div>
-            ))}
+            {/* Waitlist members will be loaded from backend */}
           </div>
         </div>
 

@@ -24,8 +24,6 @@ export default function Navbar() {
     }
   };
 
-  <h1 className="text-red-500 text-5xl">TEST</h1>;
-
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/about", label: "About" },

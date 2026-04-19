@@ -20,100 +20,6 @@ import {
   FileCode,
 } from "lucide-react";
 
-// ─── Mock analysis data ────────────────────────────────
-const MOCK_RESULT = {
-  repo: "facebook/react",
-  stars: 224000,
-  totalCommits: 18472,
-  contributors: [
-    {
-      login: "gaearon",
-      name: "Dan Abramov",
-      avatar: "DA",
-      commits: 3241,
-      linesAdded: 128430,
-      linesRemoved: 87234,
-      filesChanged: 892,
-      primaryRole: "Core Architecture",
-      topFiles: ["packages/react-reconciler/", "packages/react/"],
-      color: "#00D4FF",
-      percent: 34,
-    },
-    {
-      login: "acdlite",
-      name: "Andrew Clark",
-      avatar: "AC",
-      commits: 2180,
-      linesAdded: 97200,
-      linesRemoved: 64100,
-      filesChanged: 643,
-      primaryRole: "Concurrent Features",
-      topFiles: ["packages/react-dom/", "packages/scheduler/"],
-      color: "#00FF88",
-      percent: 24,
-    },
-    {
-      login: "sebmarkbage",
-      name: "Sebastian Markbåge",
-      avatar: "SM",
-      commits: 1542,
-      linesAdded: 73400,
-      linesRemoved: 49800,
-      filesChanged: 421,
-      primaryRole: "React Fiber",
-      topFiles: ["packages/react-reconciler/"],
-      color: "#FFB800",
-      percent: 18,
-    },
-    {
-      login: "bvaughn",
-      name: "Brian Vaughn",
-      avatar: "BV",
-      commits: 987,
-      linesAdded: 41200,
-      linesRemoved: 28900,
-      filesChanged: 312,
-      primaryRole: "DevTools & Profiler",
-      topFiles: ["packages/react-devtools/"],
-      color: "#FF3B5C",
-      percent: 12,
-    },
-    {
-      login: "rickhanlonii",
-      name: "Rick Hanlon",
-      avatar: "RH",
-      commits: 643,
-      linesAdded: 29800,
-      linesRemoved: 18700,
-      filesChanged: 218,
-      primaryRole: "Documentation",
-      topFiles: ["docs/", "packages/react/"],
-      color: "#A78BFA",
-      percent: 8,
-    },
-    {
-      login: "lunaruan",
-      name: "Luna Ruan",
-      avatar: "LR",
-      commits: 389,
-      linesAdded: 17400,
-      linesRemoved: 11200,
-      filesChanged: 143,
-      primaryRole: "Testing & CI",
-      topFiles: ["scripts/", "__tests__/"],
-      color: "#FB923C",
-      percent: 4,
-    },
-  ],
-  languages: [
-    { name: "JavaScript", percent: 68, color: "#F7DF1E" },
-    { name: "TypeScript", percent: 22, color: "#3178C6" },
-    { name: "Flow", percent: 7, color: "#E8BD36" },
-    { name: "CSS", percent: 3, color: "#1572B6" },
-  ],
-  aiSummary: `The facebook/react repository shows a highly concentrated development model with 6 core contributors driving 100% of meaningful commits. Dan Abramov leads as the primary architect, owning reconciler and core package changes. Andrew Clark focuses on concurrent rendering features and the react-dom surface. Sebastian Markbåge invented and maintains the Fiber architecture. Brian Vaughn single-handedly owns DevTools. The codebase is written primarily in JavaScript (68%) with TypeScript adoption growing in newer packages. Overall team velocity is high with strong ownership boundaries — minimal code duplication across contributor domains.`,
-};
-
 // ─── Particles background ────────────────────────────────
 function Particles() {
   const particles = Array.from({ length: 30 }, (_, i) => ({
@@ -953,17 +859,27 @@ export default function Home() {
   const handleAnalyze = async (url) => {
     setLoading(true);
     setAnalysisData(null);
-    for (let i = 0; i < loadingMessages.length; i++) {
-      setLoadingMsg(loadingMessages[i]);
-      await new Promise((r) => setTimeout(r, 600));
+    try {
+      // Call the backend API
+      const repoName = url
+        .replace("github.com/", "")
+        .replace("https://github.com/", "");
+      for (let i = 0; i < loadingMessages.length; i++) {
+        setLoadingMsg(loadingMessages[i]);
+        await new Promise((r) => setTimeout(r, 600));
+      }
+      const response = await fetch(
+        `/api/analyze?repo=${encodeURIComponent(repoName)}`,
+      );
+      if (!response.ok) throw new Error("Analysis failed");
+      const data = await response.json();
+      setAnalysisData(data);
+    } catch (error) {
+      console.error("Analysis error:", error);
+      alert("Error analyzing repository. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    setAnalysisData({
-      ...MOCK_RESULT,
-      repo:
-        url.replace("github.com/", "").replace("https://github.com/", "") ||
-        MOCK_RESULT.repo,
-    });
-    setLoading(false);
     setTimeout(
       () => resultRef.current?.scrollIntoView({ behavior: "smooth" }),
       100,
