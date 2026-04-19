@@ -1,10 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";          // ✅ FIXED
-import "./index.css";             // ✅ FIXED
+import App from "./App"; // ✅ FIXED
+import "./index.css"; // ✅ FIXED
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );
