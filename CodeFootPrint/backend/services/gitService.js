@@ -102,26 +102,3 @@ export const getFileContent = async (repoUrl, filePath) => {
 
   return null;
 };
-
-// ✅ fetch all contributors in the repo
-export const getAllContributors = async (repoUrl) => {
-  const { owner, repo } = parseRepoUrl(repoUrl);
-  const response = await fetch(
-    `${GITHUB_API}/repos/${owner}/${repo}/contributors?per_page=20`,
-    {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      },
-    }
-  );
-
-  if (!response.ok) return [];
-
-  const contributors = await response.json();
-  return contributors.map((c) => ({
-    username: c.login,
-    totalCommits: c.contributions,
-    avatarUrl: c.avatar_url,
-  }));
-};
