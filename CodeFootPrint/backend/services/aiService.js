@@ -39,46 +39,87 @@ Functions Written      : ${aggregated.allFunctions.length}`;
     .join("\n")
     .slice(0, 5000);
 
-  const prompt = `You are an expert code contribution analyst.
+    const prompt = `You are a senior software engineer conducting a technical interview assessment.
 
-Analyze the EXACT work done by "${username}" in "${repoUrl}".
-
-STRICT RULES:
-- ONLY describe work from data provided below
-- Do NOT assume or invent any work not shown
-- Clearly separate backend vs frontend work
-- Config files count as project setup NOT feature work
-- If a section has no files say "No work found in this area"
-- Be specific with exact file names and function names
-
---- CONTRIBUTION STATS (ALL ${totalCommits} COMMITS) ---
-${statsSummary}
-
---- TOP FILES BY WORK DONE ---
-${topFilesSummary}
-
---- FUNCTIONS & CLASSES WRITTEN ---
-${functionsSummary}
-
---- BACKEND FILE CONTENTS ---
-${formatFiles(backend)}
-
---- FRONTEND FILE CONTENTS ---
-${formatFiles(frontend)}
-
---- CONFIG FILES ---
-${config.map((f) => f.filePath).join("\n")}
-
-Provide this exact report:
-1. **What They Built** — Specific features, systems, modules built
-2. **Backend Contributions** — Exact files and functions written
-3. **Frontend Contributions** — Exact files and components written
-4. **Project Setup** — Config and tooling set up
-5. **Tech Stack** — Based strictly on actual code seen
-6. **Code Quality** — Based on actual code patterns seen
-7. **Contribution Scale** — Lines added/removed, files touched, functions written
-8. **Overall Summary** — What did this person actually build in plain English?`;
-
+    Analyze the contributions made by "${username}" in "${repoUrl}" and generate a detailed interview-ready report.
+    
+    Total commits by this user: ${totalCommits}
+    
+    STRICT RULES:
+    - ONLY report what you can see in the data below
+    - Do NOT assume or invent any work not shown
+    - Be specific with exact file names and function names
+    - If a section has no evidence say "No evidence found"
+    
+    --- CONTRIBUTION STATS ---
+    ${statsSummary}
+    
+    --- TOP FILES BY WORK DONE ---
+    ${topFilesSummary}
+    
+    --- FUNCTIONS & CLASSES WRITTEN ---
+    ${functionsSummary}
+    
+    --- BACKEND FILES ---
+    ${formatFiles(backend)}
+    
+    --- FRONTEND FILES ---
+    ${formatFiles(frontend)}
+    
+    --- CONFIG FILES ---
+    ${config.map((f) => f.filePath).join("\n")}
+    
+    Generate a report with these exact sections:
+    
+    1. **Candidate Overview**
+       - Who is this developer based on their code?
+       - What is their primary area of expertise?
+       - Senior, Mid or Junior level based on code quality?
+    
+    2. **Technical Skills Demonstrated**
+       - List exact languages, frameworks, tools seen in code
+       - Rate proficiency: Expert / Proficient / Familiar
+       - Back each rating with specific evidence from code
+    
+    3. **Problem Solving Ability**
+       - What kind of problems did they solve?
+       - How complex were the solutions?
+       - Any evidence of good architectural decisions?
+    
+    4. **Code Quality Assessment**
+       - Code organization and structure
+       - Error handling patterns
+       - Naming conventions
+       - Modularity and reusability
+       - Testing practices
+    
+    5. **Key Contributions** (most impressive work)
+       - List top 3-5 most impactful things they built
+       - For each: what it does, why it matters, complexity level
+    
+    6. **Collaboration & Consistency**
+       - Commit frequency and consistency
+       - Size of commits (focused or large dumps)
+       - Evidence of iterative improvement
+    
+    7. **Areas of Strength**
+       - Top 3 things this developer does well
+       - Backed by specific code evidence
+    
+    8. **Areas for Improvement**
+       - Gaps or weaknesses noticed in the code
+       - What skills seem missing or underdeveloped
+    
+    9. **Interview Questions to Ask**
+       - Generate 5 targeted technical questions based on their code
+       - Each question should probe deeper into something they built
+       - Example: "I see you wrote configureOrigin() — walk me through how you handle dynamic origin validation"
+    
+    10. **Hiring Recommendation**
+        - Strong Hire / Hire / Maybe / No Hire
+        - One paragraph justification based strictly on code evidence
+        - What role would suit them best?`;
+        
   const response = await groq.chat.completions.create({
     model: "llama-3.3-70b-versatile",
     messages: [
