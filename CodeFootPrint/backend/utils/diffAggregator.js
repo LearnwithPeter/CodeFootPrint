@@ -42,6 +42,6 @@ export const aggregateDiffs = (parsedDiffs) => {
     totalLinesRemoved,
     uniqueFilesTouched: Object.keys(fileMap).length,
     topFiles,
-    allFunctions: allFunctions.slice(0, 500), // top 100 functions
+    allFunctions: allFunctions.slice(0, 500), // top 500 functions
   };
 };
