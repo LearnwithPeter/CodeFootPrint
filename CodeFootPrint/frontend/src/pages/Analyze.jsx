@@ -1,69 +1,18 @@
 import { useState } from 'react'
+import axios from 'axios'
 import {
   GitBranch, GitCommit, Users, Code2, BarChart3, Eye,
   Shield, Activity, Star, ChevronRight, FileCode,
   Search, ArrowRight, Zap
 } from 'lucide-react'
 
-// ─── Mock Data ────────────────────────────────────────────
-const MOCK_RESULT = {
-  repo: 'facebook/react',
-  stars: 224000,
-  totalCommits: 18472,
-  contributors: [
-    {
-      login: 'gaearon', name: 'Dan Abramov', avatar: 'DA',
-      commits: 3241, linesAdded: 128430, linesRemoved: 87234, filesChanged: 892,
-      primaryRole: 'Core Architecture', topFiles: ['packages/react-reconciler/', 'packages/react/'],
-      color: '#2ec18f', percent: 34,
-    },
-    {
-      login: 'acdlite', name: 'Andrew Clark', avatar: 'AC',
-      commits: 2180, linesAdded: 97200, linesRemoved: 64100, filesChanged: 643,
-      primaryRole: 'Concurrent Features', topFiles: ['packages/react-dom/', 'packages/scheduler/'],
-      color: '#1aab7a', percent: 24,
-    },
-    {
-      login: 'sebmarkbage', name: 'Sebastian Markbåge', avatar: 'SM',
-      commits: 1542, linesAdded: 73400, linesRemoved: 49800, filesChanged: 421,
-      primaryRole: 'React Fiber', topFiles: ['packages/react-reconciler/'],
-      color: '#0f8a5f', percent: 18,
-    },
-    {
-      login: 'bvaughn', name: 'Brian Vaughn', avatar: 'BV',
-      commits: 987, linesAdded: 41200, linesRemoved: 28900, filesChanged: 312,
-      primaryRole: 'DevTools & Profiler', topFiles: ['packages/react-devtools/'],
-      color: '#38b2ac', percent: 12,
-    },
-    {
-      login: 'rickhanlonii', name: 'Rick Hanlon', avatar: 'RH',
-      commits: 643, linesAdded: 29800, linesRemoved: 18700, filesChanged: 218,
-      primaryRole: 'Documentation', topFiles: ['docs/', 'packages/react/'],
-      color: '#4299e1', percent: 8,
-    },
-    {
-      login: 'lunaruan', name: 'Luna Ruan', avatar: 'LR',
-      commits: 389, linesAdded: 17400, linesRemoved: 11200, filesChanged: 143,
-      primaryRole: 'Testing & CI', topFiles: ['scripts/', '__tests__/'],
-      color: '#68d391', percent: 4,
-    },
-  ],
-  languages: [
-    { name: 'JavaScript', percent: 68, color: '#f6ad55' },
-    { name: 'TypeScript', percent: 22, color: '#4299e1' },
-    { name: 'Flow',       percent: 7,  color: '#e8bd36' },
-    { name: 'CSS',        percent: 3,  color: '#2ec18f' },
-  ],
-  aiSummary: `The facebook/react repository shows a highly concentrated development model with 6 core contributors driving 100% of meaningful commits. Dan Abramov leads as the primary architect, owning reconciler and core package changes. Andrew Clark focuses on concurrent rendering features and the react-dom surface. Sebastian Markbåge invented and maintains the Fiber architecture. Brian Vaughn single-handedly owns DevTools. The codebase is written primarily in JavaScript (68%) with TypeScript adoption growing in newer packages. Overall team velocity is high with strong ownership boundaries — minimal code duplication across contributor domains.`,
-}
-
 const LOADING_STEPS = [
-  'Connecting to GitHub API...',
+  'Connecting to Backend...',
   'Fetching commit history...',
-  'Mapping contributor patterns...',
-  'Analyzing code ownership...',
-  'Running AI summary...',
-  'Building your report...',
+  'Analyzing code diffs...',
+  'Mapping file ownership...',
+  'Generating AI report...',
+  'Finalizing analysis...'
 ]
 
 // ─── Loading Screen ───────────────────────────────────────
@@ -128,8 +77,6 @@ function LoadingScreen({ repoName, step }) {
 // ─── Analysis Result ──────────────────────────────────────
 function AnalysisResult({ data, onReset }) {
   const [activeTab, setActiveTab] = useState('overview')
-  const [selectedContrib, setSelectedContrib] = useState(null)
-  const [animKey] = useState(Date.now())
 
   return (
     <section className="min-h-screen pt-6 pb-20 px-6">
@@ -146,20 +93,16 @@ function AnalysisResult({ data, onReset }) {
             </div>
             <h2 className="font-display font-800 text-3xl md:text-4xl text-[#0f2d24] flex items-center gap-3">
               <span className="text-[#9bc4b2]">/</span>
-              {data.repo}
+              {data.repoUrl?.replace('https://github.com/', '')?.replace('github.com/', '')}
             </h2>
             <div className="flex items-center gap-4 mt-2 font-body text-sm text-[#4a7a65] flex-wrap">
               <span className="flex items-center gap-1">
-                <Star size={12} className="text-[#f6ad55]" />
-                {data.stars.toLocaleString()} stars
+                <Users size={12} className="text-[#f6ad55]" />
+                User: {data.username}
               </span>
               <span className="flex items-center gap-1">
                 <GitCommit size={12} />
-                {data.totalCommits.toLocaleString()} commits
-              </span>
-              <span className="flex items-center gap-1">
-                <Users size={12} />
-                {data.contributors.length} contributors
+                {data.totalCommits?.toLocaleString()} commits
               </span>
             </div>
           </div>
@@ -173,7 +116,7 @@ function AnalysisResult({ data, onReset }) {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8 flex-wrap">
-          {['overview', 'contributors', 'ai-summary'].map(tab => (
+          {['overview', 'ai-summary'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -191,172 +134,59 @@ function AnalysisResult({ data, onReset }) {
         {/* ── Overview Tab ── */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="font-display font-700 text-[#0f2d24] text-lg mb-6 flex items-center gap-2">
-                <BarChart3 size={18} className="text-[#2ec18f]" /> Contribution Breakdown
-              </h3>
-              <div className="space-y-5">
-                {data.contributors.map((c) => (
-                  <div
-                    key={c.login}
-                    className="cursor-pointer group"
-                    onClick={() => { setSelectedContrib(c); setActiveTab('contributors') }}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-9 h-9 rounded-full flex items-center justify-center font-display text-xs font-700 text-white"
-                          style={{ background: c.color }}
-                        >
-                          {c.avatar}
-                        </div>
-                        <div>
-                          <span className="font-body text-sm font-600 text-[#0f2d24] group-hover:text-[#2ec18f] transition-colors">
-                            {c.name}
-                          </span>
-                          <span className="font-body text-xs text-[#9bc4b2] ml-2">@{c.login}</span>
-                        </div>
-                        <span className="hidden md:block font-body text-xs px-2.5 py-1 rounded-full bg-[#f0fdf8] text-[#4a7a65] border border-[#c8e8dc]">
-                          {c.primaryRole}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-display text-sm font-700" style={{ color: c.color }}>
-                          {c.percent}%
-                        </span>
-                        <div className="font-body text-xs text-[#9bc4b2]">
-                          {c.commits.toLocaleString()} commits
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-2 bg-[#e8f5ef] rounded-full overflow-hidden">
-                      <div
-                        key={animKey}
-                        className="h-full rounded-full contribution-bar"
-                        style={{ width: `${c.percent}%`, background: c.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Languages */}
+              
+              {/* Impact Card */}
               <div className="glass-card rounded-2xl p-6">
-                <h3 className="font-display font-700 text-[#0f2d24] mb-5 flex items-center gap-2">
-                  <Code2 size={16} className="text-[#2ec18f]" /> Languages
+                <h3 className="font-display font-700 text-[#0f2d24] text-lg mb-6 flex items-center gap-2">
+                  <BarChart3 size={18} className="text-[#2ec18f]" /> Developer Impact
                 </h3>
-                {data.languages.map(l => (
-                  <div key={l.name} className="mb-4">
-                    <div className="flex justify-between mb-1.5">
-                      <span className="font-body text-sm text-[#4a7a65] flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ background: l.color }} />
-                        {l.name}
-                      </span>
-                      <span className="font-display text-sm font-700" style={{ color: l.color }}>
-                        {l.percent}%
-                      </span>
-                    </div>
-                    <div className="h-1.5 bg-[#e8f5ef] rounded-full">
-                      <div
-                        key={animKey}
-                        className="h-full rounded-full contribution-bar"
-                        style={{ width: `${l.percent}%`, background: l.color }}
-                      />
-                    </div>
+                
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center font-display text-xl font-700 text-white shadow-lg bg-[#2ec18f]">
+                    {data.username ? data.username.slice(0,2).toUpperCase() : 'U'}
                   </div>
-                ))}
+                  <div>
+                    <div className="font-display font-600 text-xl text-[#0f2d24]">{data.username}</div>
+                    <div className="font-body text-sm text-[#9bc4b2]">{data.stats?.uniqueFilesTouched || 0} files touched</div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  {[
+                    { label: 'Lines Added',  value: `+${(data.stats?.totalLinesAdded || 0).toLocaleString()}`, color: 'text-green-600' },
+                    { label: 'Lines Removed',value: `-${(data.stats?.totalLinesRemoved || 0).toLocaleString()}`, color: 'text-red-500' },
+                    { label: 'Diffs Analyzed', value: (data.totalDiffsAnalyzed || 0).toLocaleString(), color: 'text-[#0f2d24]' },
+                    { label: 'Functions',   value: (data.stats?.functionsWritten || 0).toLocaleString(), color: 'text-[#0f2d24]' },
+                  ].map(({ label, value, color }) => (
+                    <div key={label} className="bg-[#f7fdf9] rounded-xl py-3 border border-[#d4ede5]">
+                      <div className={`font-display text-lg font-700 ${color}`}>{value}</div>
+                      <div className="font-body text-xs text-[#9bc4b2] mt-1">{label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Quick Stats */}
-              <div className="glass-card rounded-2xl p-6">
+              {/* Files Analyzed */}
+              <div className="glass-card rounded-2xl p-6 flex flex-col max-h-[350px]">
                 <h3 className="font-display font-700 text-[#0f2d24] mb-5 flex items-center gap-2">
-                  <Activity size={16} className="text-[#2ec18f]" /> Quick Stats
+                  <FileCode size={16} className="text-[#2ec18f]" /> Top Files Touched
                 </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { label: 'Avg commits/contributor', value: Math.round(data.totalCommits / data.contributors.length).toLocaleString(), icon: GitCommit },
-                    { label: 'Top contributor',         value: data.contributors[0].name.split(' ')[0], icon: Star },
-                    { label: 'Total contributors',      value: data.contributors.length, icon: Users },
-                    { label: 'Repo health',             value: 'Active', icon: Shield, teal: true },
-                  ].map(({ label, value, icon: Icon, teal }) => (
-                    <div key={label} className="bg-[#f7fdf9] rounded-xl p-4 border border-[#d4ede5]">
-                      <Icon size={14} className={teal ? 'text-[#2ec18f] mb-2' : 'text-[#9bc4b2] mb-2'} />
-                      <div className={`font-display text-sm font-700 ${teal ? 'text-[#2ec18f]' : 'text-[#0f2d24]'}`}>
-                        {value}
+                <div className="overflow-y-auto pr-2 space-y-2 flex-1 scrollbar-thin">
+                  {data.filesAnalyzed && data.filesAnalyzed.length > 0 ? (
+                    data.filesAnalyzed.map((f, i) => (
+                      <div key={i} className="font-body text-sm text-[#4a7a65] py-1.5 flex items-start gap-2 border-b border-[#e8f5ef] last:border-0">
+                        <ChevronRight size={14} className="text-[#2ec18f] mt-0.5 shrink-0" />
+                        <span className="break-all">{f}</span>
                       </div>
-                      <div className="font-body text-xs text-[#9bc4b2] mt-0.5">{label}</div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-sm text-[#9bc4b2] italic">No files available</div>
+                  )}
                 </div>
               </div>
+              
             </div>
-          </div>
-        )}
-
-        {/* ── Contributors Tab ── */}
-        {activeTab === 'contributors' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {data.contributors.map(c => (
-              <div
-                key={c.login}
-                onClick={() => setSelectedContrib(selectedContrib?.login === c.login ? null : c)}
-                className={`card-hover cursor-pointer glass-card rounded-2xl p-5 transition-all duration-300 ${
-                  selectedContrib?.login === c.login ? 'ring-2 ring-[#2ec18f]/40' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center font-display text-sm font-700 text-white shadow-lg"
-                      style={{ background: c.color }}
-                    >
-                      {c.avatar}
-                    </div>
-                    <div>
-                      <div className="font-display font-600 text-[#0f2d24]">{c.name}</div>
-                      <div className="font-body text-xs text-[#9bc4b2]">@{c.login}</div>
-                    </div>
-                  </div>
-                  <span className="font-display text-sm font-700" style={{ color: c.color }}>
-                    {c.percent}%
-                  </span>
-                </div>
-
-                <span
-                  className="inline-block px-3 py-1 rounded-full text-xs font-body font-500 mb-4"
-                  style={{ background: `${c.color}18`, color: c.color, border: `1px solid ${c.color}30` }}
-                >
-                  {c.primaryRole}
-                </span>
-
-                <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                  {[
-                    { label: 'Commits', value: c.commits.toLocaleString() },
-                    { label: 'Lines+',  value: (c.linesAdded / 1000).toFixed(1) + 'k' },
-                    { label: 'Files',   value: c.filesChanged },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="bg-[#f7fdf9] rounded-xl py-2.5 border border-[#d4ede5]">
-                      <div className="font-display text-sm font-700 text-[#0f2d24]">{value}</div>
-                      <div className="font-body text-xs text-[#9bc4b2]">{label}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div>
-                  <div className="font-body text-xs text-[#9bc4b2] mb-2 flex items-center gap-1">
-                    <FileCode size={10} /> Top areas
-                  </div>
-                  {c.topFiles.map(f => (
-                    <div key={f} className="font-body text-xs text-[#4a7a65] py-0.5 flex items-center gap-1">
-                      <ChevronRight size={10} style={{ color: c.color }} />
-                      {f}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
         )}
 
@@ -380,29 +210,10 @@ function AnalysisResult({ data, onReset }) {
                 </div>
               </div>
 
-              <p className="font-body text-[#4a7a65] leading-relaxed">{data.aiSummary}</p>
-
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                {data.contributors.slice(0, 3).map(c => (
-                  <div key={c.login} className="bg-[#f7fdf9] rounded-xl p-4 border border-[#d4ede5]">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center font-display text-xs text-white"
-                        style={{ background: c.color }}
-                      >
-                        {c.avatar[0]}
-                      </div>
-                      <span className="font-body text-sm text-[#0f2d24] font-500">
-                        {c.name.split(' ')[0]}
-                      </span>
-                    </div>
-                    <div className="font-body text-xs text-[#9bc4b2]">{c.primaryRole}</div>
-                    <div className="mt-1 font-display text-sm font-700" style={{ color: c.color }}>
-                      {c.percent}% ownership
-                    </div>
-                  </div>
-                ))}
+              <div className="font-body text-[#4a7a65] leading-relaxed whitespace-pre-wrap">
+                {data.report || "No summary generated."}
               </div>
+
             </div>
           </div>
         )}
@@ -415,12 +226,16 @@ function AnalysisResult({ data, onReset }) {
 // ─── Input Screen ─────────────────────────────────────────
 function InputScreen({ onAnalyze }) {
   const [username, setUsername] = useState('')
- const [inputVal, setInputVal] = useState('')
+  const [inputVal, setInputVal] = useState('')
   const [error, setError] = useState('')
 
   const handleSubmit = () => {
     if (!inputVal.trim()) {
       setError('Please enter a GitHub repository URL or owner/repo')
+      return
+    }
+    if (!username.trim()) {
+      setError('Please enter a GitHub username')
       return
     }
     setError('')
@@ -441,36 +256,17 @@ function InputScreen({ onAnalyze }) {
             <span className="text-[#2ec18f]">GitHub Repo</span>
           </h1>
           <p className="font-body text-[#4a7a65] text-lg max-w-md mx-auto">
-            Get a full breakdown of contributors, ownership, languages, and an AI-powered
+            Get a full breakdown of a developer's contribution, ownership, and an AI-powered
             summary — instantly.
           </p>
         </div>
 
-        {/* Input card */}
-
-        {/* <label className="block font-body text-sm font-600 text-[#4a7a65] mb-2">
-          GitHub Username
-        </label>
-
-        <div className="flex rounded-2xl overflow-hidden border bg-[#f7fdf9] border-[#c8e8dc] mb-4">
-          <div className="flex items-center px-4 border-r border-[#e0f2ec]">
-          <Users size={16} className="text-[#2ec18f]" />
-        </div>
-        <input
-          type="text"
-          value={username}
-          onChange={e => setUsername(e.target.value)}
-          placeholder="e.g. harshmalhotra"
-          className="flex-1 bg-transparent px-4 py-4 font-body text-sm text-[#0f2d24] placeholder-[#b0d4c4] focus:outline-none"
-        />
-        </div> */}
         <div className="glass-card rounded-3xl p-8">
 
           {/* Username */}
           <label className="block font-body text-sm font-600 text-[#4a7a65] mb-2">
             GitHub Username
           </label>
-
           <div className="flex rounded-2xl overflow-hidden border bg-[#f7fdf9] border-[#c8e8dc] mb-5">
             <div className="flex items-center px-4 border-r border-[#e0f2ec]">
               <Users size={16} className="text-[#2ec18f]" />
@@ -478,20 +274,20 @@ function InputScreen({ onAnalyze }) {
             <input
               type="text"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e => { setUsername(e.target.value); setError('') }}
               placeholder="e.g. harshmalhotra"
               className="flex-1 bg-transparent px-4 py-4 font-body text-sm text-[#0f2d24] placeholder-[#b0d4c4] focus:outline-none"
             />
           </div>
+
           <label className="block font-body text-sm font-600 text-[#4a7a65] mb-2">
             GitHub Repository URL
           </label>
-
           {/* Input row */}
           <div
             className={`flex rounded-2xl overflow-hidden border bg-[#f7fdf9] transition-all duration-300
               focus-within:shadow-[0_0_0_3px_rgba(46,193,143,0.13)]
-              ${error ? 'border-red-300' : 'border-[#c8e8dc] focus-within:border-[#2ec18f]'}`}
+              ${error && !inputVal ? 'border-red-300' : 'border-[#c8e8dc] focus-within:border-[#2ec18f]'}`}
           >
             <div className="flex items-center px-4 border-r border-[#e0f2ec]">
               <Search size={16} className="text-[#2ec18f]" />
@@ -503,7 +299,6 @@ function InputScreen({ onAnalyze }) {
               onKeyDown={e => e.key === 'Enter' && handleSubmit()}
               placeholder="e.g.  github.com/facebook/react   or   vercel/next.js"
               className="flex-1 bg-transparent px-4 py-4 font-body text-sm text-[#0f2d24] placeholder-[#b0d4c4] focus:outline-none"
-              autoFocus
             />
           </div>
 
@@ -540,8 +335,8 @@ function InputScreen({ onAnalyze }) {
         {/* Feature hints */}
         <div className="mt-5 grid grid-cols-3 gap-3">
           {[
-            { icon: Users,    label: 'Contributor Map' },
-            { icon: BarChart3, label: 'Ownership Stats' },
+            { icon: Users,    label: 'User Stats' },
+            { icon: BarChart3, label: 'Impact Data' },
             { icon: Eye,      label: 'AI Summary'       },
           ].map(({ icon: Icon, label }) => (
             <div key={label} className="glass-card rounded-xl p-3 text-center">
@@ -557,29 +352,51 @@ function InputScreen({ onAnalyze }) {
 
 // ─── Main Analyze Page ────────────────────────────────────
 export default function Analyze() {
-  const [phase, setPhase]         = useState('input')   // 'input' | 'loading' | 'result'
+  const [phase, setPhase]         = useState('input')   // 'input' | 'loading' | 'result' | 'error'
   const [loadingStep, setLoadingStep] = useState(0)
   const [result, setResult]       = useState(null)
   const [repoName, setRepoName]   = useState('')
+  const [apiError, setApiError]   = useState('')
 
   const handleAnalyze = async (raw, username) => {
     const cleaned = raw
       .replace('https://github.com/', '')
+      .replace('http://github.com/', '')
       .replace('github.com/', '')
       .trim()
 
     setRepoName(cleaned)
     setPhase('loading')
     setLoadingStep(0)
+    setApiError('')
 
-    for (let i = 0; i < LOADING_STEPS.length; i++) {
-      setLoadingStep(i)
-      await new Promise(r => setTimeout(r, 700))
+    let step = 0;
+    const interval = setInterval(() => {
+      step = (step + 1) % LOADING_STEPS.length;
+      setLoadingStep(step);
+    }, 2500);
+
+    try {
+      const response = await axios.post('/api/analyze', {
+        repoUrl: cleaned,
+        username: username
+      });
+      
+      clearInterval(interval);
+      setLoadingStep(LOADING_STEPS.length - 1);
+      
+      // Delay slightly for effect
+      await new Promise(r => setTimeout(r, 500));
+      
+      setResult(response.data);
+      setPhase('result');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      clearInterval(interval);
+      console.error("Analysis Error:", err);
+      setApiError(err.response?.data?.message || err.message || "Failed to connect to backend");
+      setPhase('error');
     }
-
-    setResult({ ...MOCK_RESULT, repo: cleaned })
-    setPhase('result')
-    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleReset = () => {
@@ -587,6 +404,7 @@ export default function Analyze() {
     setResult(null)
     setRepoName('')
     setLoadingStep(0)
+    setApiError('')
   }
 
   return (
@@ -596,6 +414,23 @@ export default function Analyze() {
         {phase === 'input'   && <InputScreen   onAnalyze={handleAnalyze} />}
         {phase === 'loading' && <LoadingScreen repoName={repoName} step={loadingStep} />}
         {phase === 'result'  && <AnalysisResult data={result} onReset={handleReset} />}
+        {phase === 'error'   && (
+          <div className="min-h-[70vh] flex flex-col items-center justify-center px-6 text-center">
+             <div className="glass-card rounded-3xl p-12 w-full max-w-md">
+                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                  <Shield size={32} className="text-red-500" />
+                </div>
+                <h2 className="font-display font-700 text-2xl text-[#0f2d24] mb-2">Analysis Failed</h2>
+                <p className="font-body text-[#4a7a65] mb-6">{apiError}</p>
+                <button
+                  onClick={handleReset}
+                  className="btn-outline px-6 py-2 rounded-xl font-body text-sm font-500"
+                >
+                  Try Again
+                </button>
+             </div>
+          </div>
+        )}
       </div>
     </div>
   )
