@@ -414,7 +414,8 @@ function AnalysisResult({ data, onReset }) {
 
 // ─── Input Screen ─────────────────────────────────────────
 function InputScreen({ onAnalyze }) {
-  const [inputVal, setInputVal] = useState('')
+  const [username, setUsername] = useState('')
+ const [inputVal, setInputVal] = useState('')
   const [error, setError] = useState('')
 
   const handleSubmit = () => {
@@ -423,7 +424,7 @@ function InputScreen({ onAnalyze }) {
       return
     }
     setError('')
-    onAnalyze(inputVal.trim())
+    onAnalyze(inputVal.trim(), username.trim())
   }
 
   return (
@@ -446,7 +447,42 @@ function InputScreen({ onAnalyze }) {
         </div>
 
         {/* Input card */}
+
+        {/* <label className="block font-body text-sm font-600 text-[#4a7a65] mb-2">
+          GitHub Username
+        </label>
+
+        <div className="flex rounded-2xl overflow-hidden border bg-[#f7fdf9] border-[#c8e8dc] mb-4">
+          <div className="flex items-center px-4 border-r border-[#e0f2ec]">
+          <Users size={16} className="text-[#2ec18f]" />
+        </div>
+        <input
+          type="text"
+          value={username}
+          onChange={e => setUsername(e.target.value)}
+          placeholder="e.g. harshmalhotra"
+          className="flex-1 bg-transparent px-4 py-4 font-body text-sm text-[#0f2d24] placeholder-[#b0d4c4] focus:outline-none"
+        />
+        </div> */}
         <div className="glass-card rounded-3xl p-8">
+
+          {/* Username */}
+          <label className="block font-body text-sm font-600 text-[#4a7a65] mb-2">
+            GitHub Username
+          </label>
+
+          <div className="flex rounded-2xl overflow-hidden border bg-[#f7fdf9] border-[#c8e8dc] mb-5">
+            <div className="flex items-center px-4 border-r border-[#e0f2ec]">
+              <Users size={16} className="text-[#2ec18f]" />
+            </div>
+            <input
+              type="text"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              placeholder="e.g. harshmalhotra"
+              className="flex-1 bg-transparent px-4 py-4 font-body text-sm text-[#0f2d24] placeholder-[#b0d4c4] focus:outline-none"
+            />
+          </div>
           <label className="block font-body text-sm font-600 text-[#4a7a65] mb-2">
             GitHub Repository URL
           </label>
@@ -526,7 +562,7 @@ export default function Analyze() {
   const [result, setResult]       = useState(null)
   const [repoName, setRepoName]   = useState('')
 
-  const handleAnalyze = async (raw) => {
+  const handleAnalyze = async (raw, username) => {
     const cleaned = raw
       .replace('https://github.com/', '')
       .replace('github.com/', '')
