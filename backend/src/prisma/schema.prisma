@@ -1,0 +1,42 @@
+// This file tells Prisma two things:
+// 1. "generator client" - generate a JS client we can import in our code
+// 2. "datasource db" - which database to connect to, and how
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// User model - stores account credentials and profile info.
+model User {
+  id        String     @id @default(uuid())
+  name      String
+  email     String     @unique
+  password  String   // always a bcrypt HASH, never the real password
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  analyses  Analysis[]
+
+  @@map("users")
+}
+
+// Analysis model - stores one completed GitHub contribution analysis.
+// "report" holds the AI-generated report plus the aggregated contribution
+// stats as JSON, so we don't need a rigid column per report field - the
+// AI report's exact shape can evolve without a database migration.
+model Analysis {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  repositoryUrl   String
+  githubUsername  String
+  status          String   @default("completed") // "completed" | "failed"
+  report          Json
+  processingTimeMs Int?    // how long the analysis pipeline took to run, in milliseconds
+  createdAt       DateTime @default(now())
+
+  @@map("analyses")
+}
